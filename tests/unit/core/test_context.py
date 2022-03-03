@@ -2,22 +2,11 @@
 #
 # Copyright 2015 Red Hat, Inc.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import ast
+from unittest import mock
 
-import mock
-import six
 import testtools
 
 from bandit.core import context
@@ -177,15 +166,9 @@ class ContextTests(testtools.TestCase):
         expected = value.id
         self.assertEqual(expected, new_context._get_literal_value(value))
 
-        if six.PY3:
-            value = ast.NameConstant(True)
-            expected = str(value.value)
-            self.assertEqual(expected, new_context._get_literal_value(value))
-
-        if six.PY3:
-            value = ast.Bytes(b'spam')
-            expected = value.s
-            self.assertEqual(expected, new_context._get_literal_value(value))
+        value = ast.Bytes(b'spam')
+        expected = value.s
+        self.assertEqual(expected, new_context._get_literal_value(value))
 
         self.assertIsNone(new_context._get_literal_value(None))
 
@@ -264,3 +247,12 @@ class ContextTests(testtools.TestCase):
 
         new_context = context.Context()
         self.assertFalse(new_context.is_module_imported_like('spam'))
+
+    def test_filename(self):
+        ref_context = dict(filename='spam.py')
+        new_context = context.Context(context_object=ref_context)
+
+        self.assertEqual(new_context.filename, 'spam.py')
+
+        new_context = context.Context()
+        self.assertIsNone(new_context.filename)

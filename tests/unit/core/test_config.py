@@ -1,24 +1,14 @@
 # Copyright 2015 IBM Corp.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import os
 import tempfile
 import textwrap
+from unittest import mock
 import uuid
 
 import fixtures
-import mock
 import testtools
 
 from bandit.core import config
@@ -26,14 +16,16 @@ from bandit.core import utils
 
 
 class TempFile(fixtures.Fixture):
-    def __init__(self, contents=None):
+    def __init__(self, contents=None, suffix='.yaml'):
         super(TempFile, self).__init__()
         self.contents = contents
+        self.suffix = suffix
 
     def setUp(self):
         super(TempFile, self).setUp()
 
-        with tempfile.NamedTemporaryFile(mode='wt', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=self.suffix, mode='wt',
+                                         delete=False) as f:
             if self.contents:
                 f.write(self.contents)
 
@@ -122,7 +114,7 @@ class TestGetSetting(testtools.TestCase):
 
 
 class TestConfigCompat(testtools.TestCase):
-    sample_yaml = textwrap.dedent("""
+    sample = textwrap.dedent("""
         profiles:
             test_1:
                 include:
@@ -167,10 +159,11 @@ class TestConfigCompat(testtools.TestCase):
                     level: HIGH
                     message: "{module} is considered insecure."
         """)
+    suffix = '.yaml'
 
     def setUp(self):
         super(TestConfigCompat, self).setUp()
-        f = self.useFixture(TempFile(self.sample_yaml))
+        f = self.useFixture(TempFile(self.sample, suffix=self.suffix))
         self.config = config.BanditConfig(f.name)
 
     def test_converted_include(self):
@@ -262,3 +255,41 @@ class TestConfigCompat(testtools.TestCase):
             self.config = config.BanditConfig(f.name)
         except utils.ConfigError as e:
             self.assertIn("Error parsing file.", e.message)
+
+
+class TestTomlConfig(TestConfigCompat):
+    sample = textwrap.dedent("""
+        [tool.bandit.profiles.test_1]
+        include = [
+            "any_other_function_with_shell_equals_true",
+            "assert_used",
+        ]
+
+        [tool.bandit.profiles.test_2]
+        include = ["blacklist_calls"]
+
+        [tool.bandit.profiles.test_3]
+        include = ["blacklist_imports"]
+
+        [tool.bandit.profiles.test_4]
+        exclude = ["assert_used"]
+
+        [tool.bandit.profiles.test_5]
+        exclude = ["blacklist_calls", "blacklist_imports"]
+
+        [tool.bandit.profiles.test_6]
+        include = ["blacklist_calls"]
+        exclude = ["blacklist_imports"]
+
+        [[tool.bandit.blacklist_calls.bad_name_sets]]
+            [tool.bandit.blacklist_calls.bad_name_sets.pickle]
+            qualnames = ["pickle.loads"]
+            message = "{func} library appears to be in use."
+
+        [[tool.bandit.blacklist_imports.bad_import_sets]]
+            [tool.bandit.blacklist_imports.bad_import_sets.telnet]
+            imports = ["telnetlib"]
+            level = "HIGH"
+            message = "{module} is considered insecure."
+        """)
+    suffix = '.toml'

@@ -2,17 +2,7 @@
 #
 # Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 r"""
 ==================================================
@@ -35,27 +25,27 @@ set world writable. Warnings are given with HIGH confidence.
 
     >> Issue: Probable insecure usage of temp file/directory.
        Severity: Medium   Confidence: Medium
-       Location: ./examples/os-chmod-py2.py:15
+       Location: ./examples/os-chmod.py:15
     14  os.chmod('/etc/hosts', 0o777)
     15  os.chmod('/tmp/oh_hai', 0x1ff)
     16  os.chmod('/etc/passwd', stat.S_IRWXU)
 
     >> Issue: Chmod setting a permissive mask 0777 on file (key_file).
        Severity: High   Confidence: High
-       Location: ./examples/os-chmod-py2.py:17
+       Location: ./examples/os-chmod.py:17
     16  os.chmod('/etc/passwd', stat.S_IRWXU)
     17  os.chmod(key_file, 0o777)
     18
 
 .. seealso::
 
- - https://security.openstack.org/guidelines/dg_apply-restrictive-file-permissions.html  # noqa
+ - https://security.openstack.org/guidelines/dg_apply-restrictive-file-permissions.html
  - https://en.wikipedia.org/wiki/File_system_permissions
  - https://security.openstack.org
 
 .. versionadded:: 0.9.0
 
-"""
+"""  # noqa: E501
 
 import stat
 

@@ -2,17 +2,7 @@
 #
 # Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import collections
 import fnmatch
@@ -20,6 +10,7 @@ import json
 import logging
 import os
 import sys
+import tokenize
 import traceback
 
 from bandit.core import constants as b_constants
@@ -39,7 +30,7 @@ class BanditManager(object):
     scope = []
 
     def __init__(self, config, agg_type, debug=False, verbose=False,
-                 profile=None, ignore_nosec=False):
+                 quiet=False, profile=None, ignore_nosec=False):
         '''Get logger, config, AST handler, and result store ready
 
         :param config: config options object
@@ -47,12 +38,14 @@ class BanditManager(object):
         :param agg_type: aggregation type
         :param debug: Whether to show debug messages or not
         :param verbose: Whether to show verbose output
+        :param quiet: Whether to only show output in the case of an error
         :param profile_name: Optional name of profile to use (from cmd line)
         :param ignore_nosec: Whether to ignore #nosec or not
         :return:
         '''
         self.debug = debug
         self.verbose = verbose
+        self.quiet = quiet
         if not profile:
             profile = {}
         self.ignore_nosec = ignore_nosec
@@ -158,8 +151,7 @@ class BanditManager(object):
             report_func = formatter.plugin
             if output_format == 'custom':
                 report_func(self, fileobj=output_file, sev_level=sev_level,
-                            conf_level=conf_level, lines=lines,
-                            template=template)
+                            conf_level=conf_level, template=template)
             else:
                 report_func(self, fileobj=output_file, sev_level=sev_level,
                             conf_level=conf_level, lines=lines)
@@ -180,13 +172,16 @@ class BanditManager(object):
         files_list = set()
         excluded_files = set()
 
-        excluded_path_strings = self.b_conf.get_option('exclude_dirs') or []
+        excluded_path_globs = self.b_conf.get_option('exclude_dirs') or []
         included_globs = self.b_conf.get_option('include') or ['*.py']
 
         # if there are command line provided exclusions add them to the list
         if excluded_paths:
             for path in excluded_paths.split(','):
-                excluded_path_strings.append(path)
+                if os.path.isdir(path):
+                    path = os.path.join(path, '*')
+
+                excluded_path_globs.append(path)
 
         # build list of files we will analyze
         for fname in targets:
@@ -196,7 +191,7 @@ class BanditManager(object):
                     new_files, newly_excluded = _get_files_from_dir(
                         fname,
                         included_globs=included_globs,
-                        excluded_path_strings=excluded_path_strings
+                        excluded_path_strings=excluded_path_globs
                     )
                     files_list.update(new_files)
                     excluded_files.update(newly_excluded)
@@ -209,7 +204,7 @@ class BanditManager(object):
                 # we'll scan it, regardless of whether it's in the included
                 # file types list
                 if _is_file_included(fname, included_globs,
-                                     excluded_path_strings,
+                                     excluded_path_globs,
                                      enforce_glob=False):
                     files_list.add(fname)
                 else:
@@ -223,9 +218,7 @@ class BanditManager(object):
 
         :return: -
         '''
-        # display progress, if number of files warrants it
-        if len(self.files_list) > self.progress:
-            sys.stderr.write("%s [" % len(self.files_list))
+        self._show_progress("%s [" % len(self.files_list))
 
         # if we have problems with a file, we'll remove it from the files_list
         # and add it to the skipped list instead
@@ -237,8 +230,7 @@ class BanditManager(object):
             if len(self.files_list) > self.progress:
                 # is it time to update the progress indicator?
                 if count % self.progress == 0:
-                    sys.stderr.write("%s.. " % count)
-                    sys.stderr.flush()
+                    self._show_progress("%s.. " % count, flush=True)
             try:
                 if fname == '-':
                     sys.stdin = os.fdopen(sys.stdin.fileno(), 'rb', 0)
@@ -250,15 +242,29 @@ class BanditManager(object):
                 self.skipped.append((fname, e.strerror))
                 new_files_list.remove(fname)
 
-        if len(self.files_list) > self.progress:
-            sys.stderr.write("]\n")
-            sys.stderr.flush()
+        self._show_progress("]\n", flush=True)
 
         # reflect any files which may have been skipped
         self.files_list = new_files_list
 
         # do final aggregation of metrics
         self.metrics.aggregate()
+
+    def _show_progress(self, message, flush=False):
+        '''Show progress on stderr
+
+        Write progress message to stderr, if number of files warrants it and
+        log level is high enough.
+
+        :param message: The message to write to stderr
+        :param flush: Whether to flush stderr after writing the message
+        :return:
+        '''
+        if len(self.files_list) > self.progress and \
+                LOG.getEffectiveLevel() <= logging.INFO:
+            sys.stderr.write(message)
+            if flush:
+                sys.stderr.flush()
 
     def _parse_file(self, fname, fdata, new_files_list):
         try:
@@ -270,16 +276,21 @@ class BanditManager(object):
             if self.ignore_nosec:
                 nosec_lines = set()
             else:
-                nosec_lines = set(
-                    lineno + 1 for
-                    (lineno, line) in enumerate(lines)
-                    if b'#nosec' in line or b'# nosec' in line)
+                try:
+                    fdata.seek(0)
+                    tokens = tokenize.tokenize(fdata.readline)
+                    nosec_lines = set(
+                        lineno for toktype, tokval, (lineno, _), _, _ in tokens
+                        if toktype == tokenize.COMMENT and
+                        '#nosec' in tokval or '# nosec' in tokval)
+                except tokenize.TokenError:
+                    nosec_lines = set()
             score = self._execute_ast_visitor(fname, data, nosec_lines)
             self.scores.append(score)
             self.metrics.count_issues([score, ])
-        except KeyboardInterrupt as e:
+        except KeyboardInterrupt:
             sys.exit(2)
-        except SyntaxError as e:
+        except SyntaxError:
             self.skipped.append((fname,
                                  "syntax error while parsing AST from file"))
             new_files_list.remove(fname)
@@ -320,7 +331,7 @@ def _get_files_from_dir(files_dir, included_globs=None,
     files_list = set()
     excluded_files = set()
 
-    for root, subdirs, files in os.walk(files_dir):
+    for root, _, files in os.walk(files_dir):
         for filename in files:
             path = os.path.join(root, filename)
             if _is_file_included(path, included_globs, excluded_path_strings):
@@ -341,7 +352,8 @@ def _is_file_included(path, included_globs, excluded_path_strings,
 
     :param path: Full path of file to check
     :param parsed_extensions: List of parsed extensions
-    :param excluded_paths: List of paths from which we should not include files
+    :param excluded_paths: List of paths (globbing supported) from which we
+        should not include files
     :param enforce_glob: Can set to false to bypass extension check
     :return: Boolean indicating whether a file should be included
     '''
@@ -350,7 +362,8 @@ def _is_file_included(path, included_globs, excluded_path_strings,
     # if this is matches a glob of files we look at, and it isn't in an
     # excluded path
     if _matches_glob_list(path, included_globs) or not enforce_glob:
-        if not any(x in path for x in excluded_path_strings):
+        if (not _matches_glob_list(path, excluded_path_strings) and
+                not any(x in path for x in excluded_path_strings)):
             return_value = True
 
     return return_value

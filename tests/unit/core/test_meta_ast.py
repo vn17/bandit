@@ -1,18 +1,7 @@
 # Copyright (c) 2015 VMware, Inc.
 #
-#  Licensed under the Apache License, Version 2.0 (the "License"); you may
-#  not use this file except in compliance with the License. You may obtain
-#  a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#  License for the specific language governing permissions and limitations
-#  under the License.
+# SPDX-License-Identifier: Apache-2.0
 
-import six
 import testtools
 
 from bandit.core import meta_ast
@@ -38,4 +27,4 @@ class BanditMetaAstTests(testtools.TestCase):
     def test_str(self):
         node = self.b_meta_ast.nodes[self.node_id]
         expected = 'Node: %s\n\t%s\nLength: 1\n' % (self.node_id, node)
-        self.assertEqual(expected, six.text_type(self.b_meta_ast))
+        self.assertEqual(expected, str(self.b_meta_ast))

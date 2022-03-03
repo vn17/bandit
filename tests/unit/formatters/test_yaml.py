@@ -1,21 +1,11 @@
 # Copyright (c) 2017 VMware, Inc.
 #
-#  Licensed under the Apache License, Version 2.0 (the "License"); you may
-#  not use this file except in compliance with the License. You may obtain
-#  a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#  License for the specific language governing permissions and limitations
-#  under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import collections
 import tempfile
+from unittest import mock
 
-import mock
 import testtools
 import yaml
 
@@ -75,12 +65,12 @@ class YamlFormatterTests(testtools.TestCase):
         get_issue_list.return_value = collections.OrderedDict(
             [(self.issue, self.candidates)])
 
-        tmp_file = open(self.tmp_fname, 'w')
-        b_json.report(self.manager, tmp_file, self.issue.severity,
-                      self.issue.confidence)
+        with open(self.tmp_fname, 'w') as tmp_file:
+            b_json.report(self.manager, tmp_file, self.issue.severity,
+                          self.issue.confidence)
 
         with open(self.tmp_fname) as f:
-            data = yaml.load(f.read())
+            data = yaml.load(f.read(), Loader=yaml.SafeLoader)
             self.assertIsNotNone(data['generated_at'])
             self.assertEqual(self.tmp_fname, data['results'][0]['filename'])
             self.assertEqual(self.issue.severity,

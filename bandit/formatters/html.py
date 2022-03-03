@@ -1,17 +1,7 @@
 # Copyright (c) 2015 Rackspace, Inc.
 # Copyright (c) 2015 Hewlett Packard Enterprise
 #
-#  Licensed under the Apache License, Version 2.0 (the "License"); you may
-#  not use this file except in compliance with the License. You may obtain
-#  a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#  License for the specific language governing permissions and limitations
-#  under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 r"""
 ==============
@@ -152,19 +142,14 @@ This formatter outputs the issues as HTML.
 """
 from __future__ import absolute_import
 
+from html import escape as html_escape
 import logging
 import sys
-
-import six
 
 from bandit.core import docs_utils
 from bandit.core import test_properties
 from bandit.formatters import utils
 
-if not six.PY2:
-    from html import escape as html_escape
-else:
-    from cgi import escape as html_escape
 
 LOG = logging.getLogger(__name__)
 
@@ -278,6 +263,7 @@ pre {
     <b>Severity: </b>{severity}<br>
     <b>Confidence: </b>{confidence}<br>
     <b>File: </b><a href="{path}" target="_blank">{path}</a> <br>
+    <b>Line number: </b>{line_number}<br>
     <b>More info: </b><a href="{url}" target="_blank">{url}</a><br>
 {code}
 {candidates}
@@ -373,7 +359,8 @@ pre {
                                           confidence=issue.confidence,
                                           path=issue.fname, code=code,
                                           candidates=candidates,
-                                          url=url)
+                                          url=url,
+                                          line_number=issue.lineno)
 
     # build the metrics string to insert in the report
     metrics_summary = metrics_block.format(
@@ -387,8 +374,8 @@ pre {
 
     with fileobj:
         wrapped_file = utils.wrap_file_object(fileobj)
-        wrapped_file.write(utils.convert_file_contents(header_block))
-        wrapped_file.write(utils.convert_file_contents(report_contents))
+        wrapped_file.write(header_block)
+        wrapped_file.write(report_contents)
 
     if fileobj.name != sys.stdout.name:
         LOG.info("HTML output written to file: %s", fileobj.name)

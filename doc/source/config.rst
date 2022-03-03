@@ -37,6 +37,59 @@ several config files and pick from them using `-c`. If you only wish to control
 the specific tests that are to be run (and not their parameters) then using
 `-s` or `-t` on the command line may be more appropriate.
 
+Also you can configure bandit via
+`pyproject.toml <https://www.python.org/dev/peps/pep-0518/>`_ file. In this
+case you would explicitly specify the path to configuration via `-c` too.
+For example:
+
+.. code-block:: TOML
+
+  [tool.bandit]
+  tests = ["B201", "B301"]
+  skips = ["B101", "B601"]
+
+  [tool.bandit.any_other_function_with_shell_equals_true]
+  no_shell = [
+    "os.execl",
+    "os.execle",
+    "os.execlp",
+    "os.execlpe",
+    "os.execv",
+    "os.execve",
+    "os.execvp",
+    "os.execvpe",
+    "os.spawnl",
+    "os.spawnle",
+    "os.spawnlp",
+    "os.spawnlpe",
+    "os.spawnv",
+    "os.spawnve",
+    "os.spawnvp",
+    "os.spawnvpe",
+    "os.startfile"
+  ]
+  shell = [
+    "os.system",
+    "os.popen",
+    "os.popen2",
+    "os.popen3",
+    "os.popen4",
+    "popen2.popen2",
+    "popen2.popen3",
+    "popen2.popen4",
+    "popen2.Popen3",
+    "popen2.Popen4",
+    "commands.getoutput",
+    "commands.getstatusoutput"
+  ]
+  subprocess = [
+    "subprocess.Popen",
+    "subprocess.call",
+    "subprocess.check_call",
+    "subprocess.check_output"
+  ]
+
+
 Skipping Tests
 --------------
 The bandit config may contain optional lists of test IDs to either include
@@ -51,6 +104,22 @@ from that set. It is an error to include the same test ID in both `tests` and
 Note that command line options `-t`/`-s` can still be used in conjunction with
 `tests` and `skips` given in a config. The result is to concatenate `-t` with
 `tests` and likewise for `-s` and `skips` before working out the tests to run.
+
+Suppressing Individual Lines
+----------------------------
+
+If you have lines in your code triggering vulnerability errors and you are
+certain that this is acceptable, they can be individually silenced by appending
+``# nosec`` to the line::
+
+    # The following hash is not used in any security context. It is only used
+    # to generate unique values, collisions are acceptable and "data" is not
+    # coming from user-generated input
+    the_hash = md5(data).hexdigest()  # nosec
+
+
+In such cases, it is good practice to add a comment explaining *why* a given
+line was excluded from security checks.
 
 Generating a Config
 -------------------

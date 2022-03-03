@@ -2,17 +2,7 @@
 #
 # Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import logging
 
@@ -46,12 +36,23 @@ class BanditConfig(object):
                 raise utils.ConfigError("Could not read config file.",
                                         config_file)
 
-            try:
-                self._config = yaml.safe_load(f)
-                self.validate(config_file)
-            except yaml.YAMLError as err:
-                LOG.error(err)
-                raise utils.ConfigError("Error parsing file.", config_file)
+            if config_file.endswith('.toml'):
+                import toml
+                try:
+                    with f:
+                        self._config = toml.load(f)['tool']['bandit']
+                except toml.TomlDecodeError as err:
+                    LOG.error(err)
+                    raise utils.ConfigError("Error parsing file.", config_file)
+            else:
+                try:
+                    with f:
+                        self._config = yaml.safe_load(f)
+                except yaml.YAMLError as err:
+                    LOG.error(err)
+                    raise utils.ConfigError("Error parsing file.", config_file)
+
+            self.validate(config_file)
 
             # valid config must be a dict
             if not isinstance(self._config, dict):

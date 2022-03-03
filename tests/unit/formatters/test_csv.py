@@ -1,21 +1,10 @@
 # Copyright (c) 2015 VMware, Inc.
 #
-#  Licensed under the Apache License, Version 2.0 (the "License"); you may
-#  not use this file except in compliance with the License. You may obtain
-#  a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#  License for the specific language governing permissions and limitations
-#  under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import csv
 import tempfile
 
-import six
 import testtools
 
 import bandit
@@ -48,20 +37,19 @@ class CsvFormatterTests(testtools.TestCase):
         self.manager.results.append(self.issue)
 
     def test_report(self):
-        tmp_file = open(self.tmp_fname, 'w')
-        b_csv.report(self.manager, tmp_file, self.issue.severity,
-                     self.issue.confidence)
+        with open(self.tmp_fname, 'w') as tmp_file:
+            b_csv.report(self.manager, tmp_file, self.issue.severity,
+                         self.issue.confidence)
 
         with open(self.tmp_fname) as f:
             reader = csv.DictReader(f)
-            data = six.next(reader)
+            data = next(reader)
             self.assertEqual(self.tmp_fname, data['filename'])
             self.assertEqual(self.issue.severity, data['issue_severity'])
             self.assertEqual(self.issue.confidence, data['issue_confidence'])
             self.assertEqual(self.issue.text, data['issue_text'])
-            self.assertEqual(six.text_type(self.context['lineno']),
-                             data['line_number'])
-            self.assertEqual(six.text_type(self.context['linerange']),
+            self.assertEqual(str(self.context['lineno']), data['line_number'])
+            self.assertEqual(str(self.context['linerange']),
                              data['line_range'])
             self.assertEqual(self.check_name, data['test_name'])
             self.assertIsNotNone(data['more_info'])

@@ -2,31 +2,19 @@
 #
 # Copyright 2015 Hewlett-Packard Development Company, L.P.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 from __future__ import division
 from __future__ import unicode_literals
 
 import linecache
 
-from six import moves
-
 from bandit.core import constants
 
 
 class Issue(object):
     def __init__(self, severity, confidence=constants.CONFIDENCE_DEFAULT,
-                 text="", ident=None, lineno=None, test_id=""):
+                 text="", ident=None, lineno=None, test_id="", col_offset=0):
         self.severity = severity
         self.confidence = confidence
         if isinstance(text, bytes):
@@ -37,6 +25,7 @@ class Issue(object):
         self.test = ""
         self.test_id = test_id
         self.lineno = lineno
+        self.col_offset = col_offset
         self.linerange = []
 
     def __str__(self):
@@ -93,7 +82,7 @@ class Issue(object):
         lmax = lmin + len(self.linerange) + max_lines - 1
 
         tmplt = "%i\t%s" if tabbed else "%i %s"
-        for line in moves.xrange(lmin, lmax):
+        for line in range(lmin, lmax):
             text = linecache.getline(self.fname, line)
 
             if isinstance(text, bytes):
@@ -115,6 +104,7 @@ class Issue(object):
             'issue_text': self.text.encode('utf-8').decode('utf-8'),
             'line_number': self.lineno,
             'line_range': self.linerange,
+            'col_offset': self.col_offset
             }
 
         if with_code:
@@ -131,6 +121,7 @@ class Issue(object):
         self.test_id = data["test_id"]
         self.lineno = data["line_number"]
         self.linerange = data["line_range"]
+        self.col_offset = data.get("col_offset", 0)
 
 
 def issue_from_dict(data):

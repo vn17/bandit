@@ -1,23 +1,13 @@
 # Copyright (c) 2015 Rackspace, Inc.
 # Copyright (c) 2015 Hewlett Packard Enterprise
 #
-#  Licensed under the Apache License, Version 2.0 (the "License"); you may
-#  not use this file except in compliance with the License. You may obtain
-#  a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#  License for the specific language governing permissions and limitations
-#  under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import collections
 import tempfile
+from unittest import mock
 
 import bs4
-import mock
 import testtools
 
 import bandit
@@ -41,9 +31,9 @@ class HtmlFormatterTests(testtools.TestCase):
     def test_report_with_skipped(self):
         self.manager.skipped = [('abc.py', 'File is bad')]
 
-        tmp_file = open(self.tmp_fname, 'w')
-        b_html.report(
-            self.manager, tmp_file, bandit.LOW, bandit.LOW)
+        with open(self.tmp_fname, 'w') as tmp_file:
+            b_html.report(
+                self.manager, tmp_file, bandit.LOW, bandit.LOW)
 
         with open(self.tmp_fname) as f:
             soup = bs4.BeautifulSoup(f.read(), 'html.parser')
@@ -78,9 +68,9 @@ class HtmlFormatterTests(testtools.TestCase):
             [(issue_a, [issue_x, issue_y]),
              (issue_b, [issue_x]), (issue_c, [issue_y])])
 
-        tmp_file = open(self.tmp_fname, 'w')
-        b_html.report(
-            self.manager, tmp_file, bandit.LOW, bandit.LOW)
+        with open(self.tmp_fname, 'w') as tmp_file:
+            b_html.report(
+                self.manager, tmp_file, bandit.LOW, bandit.LOW)
 
         with open(self.tmp_fname) as f:
             soup = bs4.BeautifulSoup(f.read(), 'html.parser')
@@ -130,6 +120,7 @@ class HtmlFormatterTests(testtools.TestCase):
             self.assertIn('BBBBBBB', issue1.text)
             self.assertIn('CCCCCCC', issue1.text)
             self.assertIn('abc.py', issue1.text)
+            self.assertIn('Line number: 1', issue1.text)
 
     @mock.patch('bandit.core.issue.Issue.get_code')
     @mock.patch('bandit.core.manager.BanditManager.get_issue_list')
@@ -143,9 +134,9 @@ class HtmlFormatterTests(testtools.TestCase):
 
         get_issue_list.return_value = {issue_a: [issue_x]}
 
-        tmp_file = open(self.tmp_fname, 'w')
-        b_html.report(
-            self.manager, tmp_file, bandit.LOW, bandit.LOW)
+        with open(self.tmp_fname, 'w') as tmp_file:
+            b_html.report(
+                self.manager, tmp_file, bandit.LOW, bandit.LOW)
 
         with open(self.tmp_fname) as f:
             contents = f.read()

@@ -1,22 +1,12 @@
 #    Copyright 2016 IBM Corp.
 #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import logging
 import os
+from unittest import mock
 
 import fixtures
-import mock
 import testtools
 
 from bandit.cli import main as bandit
@@ -74,7 +64,7 @@ class BanditCLIMainLoggerTests(testtools.TestCase):
 
     def test_init_logger(self):
         # Test that a logger was properly initialized
-        bandit._init_logger(False)
+        bandit._init_logger()
 
         self.assertIsNotNone(self.logger)
         self.assertNotEqual(self.logger.handlers, [])
@@ -82,7 +72,7 @@ class BanditCLIMainLoggerTests(testtools.TestCase):
 
     def test_init_logger_debug_mode(self):
         # Test that the logger's level was set at 'DEBUG'
-        bandit._init_logger(True)
+        bandit._init_logger(logging.DEBUG)
         self.assertEqual(logging.DEBUG, self.logger.level)
 
 
@@ -136,25 +126,55 @@ class BanditCLIMainTests(testtools.TestCase):
 
     def test_log_option_source_arg_val(self):
         # Test that the command argument value is returned when provided
+        # with None or a string default value
         arg_val = 'file'
         ini_val = 'vuln'
         option_name = 'aggregate'
-        self.assertEqual(arg_val, bandit._log_option_source(arg_val, ini_val,
-                         option_name))
+        for default_val in (None, 'default'):
+            self.assertEqual(arg_val, bandit._log_option_source(
+                                default_val,
+                                arg_val,
+                                ini_val,
+                                option_name
+                            ))
 
     def test_log_option_source_ini_value(self):
         # Test that the ini value is returned when no command argument is
         # provided
+        default_val = None
         ini_val = 'vuln'
         option_name = 'aggregate'
-        self.assertEqual(ini_val, bandit._log_option_source(None, ini_val,
-                         option_name))
+        self.assertEqual(ini_val, bandit._log_option_source(
+                            default_val,
+                            None,
+                            ini_val,
+                            option_name
+                        ))
+
+    def test_log_option_source_ini_val_with_str_default_and_no_arg_val(self):
+        # Test that the ini value is returned when no command argument is
+        # provided
+        default_val = "file"
+        arg_val = 'file'
+        ini_val = 'vuln'
+        option_name = 'aggregate'
+        self.assertEqual(ini_val, bandit._log_option_source(
+                            default_val,
+                            arg_val,
+                            ini_val,
+                            option_name
+                        ))
 
     def test_log_option_source_no_values(self):
         # Test that None is returned when no command argument or ini value are
         # provided
         option_name = 'aggregate'
-        self.assertIsNone(bandit._log_option_source(None, None, option_name))
+        self.assertIsNone(bandit._log_option_source(
+                            None,
+                            None,
+                            None,
+                            option_name
+                          ))
 
     @mock.patch('sys.argv', ['bandit', '-c', 'bandit.yaml', 'test'])
     def test_main_config_unopenable(self):
@@ -286,4 +306,18 @@ class BanditCLIMainTests(testtools.TestCase):
                         ) as mock_mgr_results_ct:
             mock_mgr_results_ct.return_value = 0
             # assert a SystemExit with code 0
+            self.assertRaisesRegex(SystemExit, '0', bandit.main)
+
+    @mock.patch('sys.argv', ['bandit', '-c', 'bandit.yaml', 'test', '-o',
+                             'output', '--exit-zero'])
+    def test_main_exit_with_results_and_with_exit_zero_flag(self):
+        # Test that bandit exits with 0 on results and zero flag
+        temp_directory = self.useFixture(fixtures.TempDir()).path
+        os.chdir(temp_directory)
+        with open('bandit.yaml', 'wt') as fd:
+            fd.write(bandit_config_content)
+        with mock.patch('bandit.core.manager.BanditManager.results_count'
+                        ) as mock_mgr_results_ct:
+            mock_mgr_results_ct.return_value = 1
+
             self.assertRaisesRegex(SystemExit, '0', bandit.main)

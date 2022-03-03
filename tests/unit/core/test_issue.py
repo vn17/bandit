@@ -2,19 +2,10 @@
 #
 # Copyright 2015 Hewlett-Packard Development Company, L.P.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# SPDX-License-Identifier: Apache-2.0
 
-import mock
+from unittest import mock
+
 import testtools
 
 import bandit
@@ -51,7 +42,7 @@ class IssueTests(testtools.TestCase):
 
     def test_issue_filter_severity(self):
         levels = [bandit.LOW, bandit.MEDIUM, bandit.HIGH]
-        issues = [_get_issue_instance(l, bandit.HIGH) for l in levels]
+        issues = [_get_issue_instance(level, bandit.HIGH) for level in levels]
 
         for level in levels:
             rank = constants.RANKING.index(level)
@@ -62,7 +53,7 @@ class IssueTests(testtools.TestCase):
 
     def test_issue_filter_confidence(self):
         levels = [bandit.LOW, bandit.MEDIUM, bandit.HIGH]
-        issues = [_get_issue_instance(bandit.HIGH, l) for l in levels]
+        issues = [_get_issue_instance(bandit.HIGH, level) for level in levels]
 
         for level in levels:
             rank = constants.RANKING.index(level)

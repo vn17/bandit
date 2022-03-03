@@ -1,0 +1,8 @@
+
+   
+; HTTP
+[http]
+	sslVerify
+[http "https://weak.example.com"]
+	sslVerify = true
+	cookieFile = /tmp/cookie.txt

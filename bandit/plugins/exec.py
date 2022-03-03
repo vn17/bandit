@@ -2,17 +2,7 @@
 #
 # Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 r"""
 ==============================
@@ -28,20 +18,19 @@ Python docs succinctly describe why the use of `exec` is risky.
 
     >> Issue: Use of exec detected.
        Severity: Medium   Confidence: High
-       Location: ./examples/exec-py2.py:2
+       Location: ./examples/exec.py:2
     1 exec("do evil")
     2 exec "do evil"
 
 .. seealso::
 
- - https://docs.python.org/2.0/ref/exec.html
+ - https://docs.python.org/2/reference/simple_stmts.html#exec
+ - https://docs.python.org/3/library/functions.html#exec
  - https://www.python.org/dev/peps/pep-0551/#background
  - https://www.python.org/dev/peps/pep-0578/#suggested-audit-hook-locations
 
 .. versionadded:: 0.9.0
 """
-
-import six
 
 import bandit
 from bandit.core import test_properties as test
@@ -55,14 +44,8 @@ def exec_issue():
     )
 
 
-if six.PY2:
-    @test.checks('Exec')
-    @test.test_id('B102')
-    def exec_used(context):
+@test.checks('Call')
+@test.test_id('B102')
+def exec_used(context):
+    if context.call_function_name_qual == 'exec':
         return exec_issue()
-else:
-    @test.checks('Call')
-    @test.test_id('B102')
-    def exec_used(context):
-        if context.call_function_name_qual == 'exec':
-            return exec_issue()

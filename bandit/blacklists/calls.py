@@ -2,18 +2,7 @@
 #
 # Copyright 2016 Hewlett-Packard Development Company, L.P.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
-
+# SPDX-License-Identifier: Apache-2.0
 r"""
 ====================================================
 Blacklist various Python calls known to be dangerous
@@ -42,6 +31,8 @@ deserialize untrusted data, possible security issue.
 |      |                     | - dill.loads                       |           |
 |      |                     | - dill.load                        |           |
 |      |                     | - dill.Unpickler                   |           |
+|      |                     | - shelve.open                      |           |
+|      |                     | - shelve.DbfilenameShelf           |           |
 +------+---------------------+------------------------------------+-----------+
 
 B302: marshal
@@ -200,6 +191,7 @@ purposes.
 |      |                     | - random.randrange                 |           |
 |      |                     | - random.randint                   |           |
 |      |                     | - random.choice                    |           |
+|      |                     | - random.choices                   |           |
 |      |                     | - random.uniform                   |           |
 |      |                     | - random.triangular                |           |
 +------+---------------------+------------------------------------+-----------+
@@ -274,11 +266,13 @@ SSH/SFTP/SCP or some other encrypted protocol.
 +------+---------------------+------------------------------------+-----------+
 
 B322: input
-------------
+-----------
+
+The check for this call has been removed.
 
 The input method in Python 2 will read from standard input, evaluate and
 run the resulting string as python source code. This is similar, though in
-many ways worse, then using eval. On Python 2, use raw_input instead, input
+many ways worse, than using eval. On Python 2, use raw_input instead, input
 is safe in Python 3.
 
 +------+---------------------+------------------------------------+-----------+
@@ -309,6 +303,7 @@ using tmpfile() instead.
 
 For further information:
     https://docs.python.org/2.7/library/os.html#os.tempnam
+    https://docs.python.org/3/whatsnew/3.0.html?highlight=tempnam
     https://bugs.python.org/issue17880
 
 +------+---------------------+------------------------------------+-----------+
@@ -334,7 +329,6 @@ def gen_blacklist():
 
     :return: a dictionary mapping node types to a list of blacklist data
     """
-
     sets = []
     sets.append(utils.build_conf_dict(
         'pickle', 'B301',
@@ -346,15 +340,17 @@ def gen_blacklist():
          'cPickle.Unpickler',
          'dill.loads',
          'dill.load',
-         'dill.Unpickler'],
+         'dill.Unpickler',
+         'shelve.open',
+         'shelve.DbfilenameShelf'],
         'Pickle and modules that wrap it can be unsafe when used to '
         'deserialize untrusted data, possible security issue.'
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'marshal', 'B302', ['marshal.load', 'marshal.loads'],
         'Deserialization with the marshal module is possibly dangerous.'
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'md5', 'B303',
@@ -371,7 +367,7 @@ def gen_blacklist():
          'cryptography.hazmat.primitives.hashes.MD5',
          'cryptography.hazmat.primitives.hashes.SHA1'],
         'Use of insecure MD2, MD4, MD5, or SHA1 hash function.'
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'ciphers', 'B304',
@@ -391,30 +387,30 @@ def gen_blacklist():
         'Use of insecure cipher {name}. Replace with a known secure'
         ' cipher such as AES.',
         'HIGH'
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'cipher_modes', 'B305',
         ['cryptography.hazmat.primitives.ciphers.modes.ECB'],
         'Use of insecure cipher mode {name}.'
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'mktemp_q', 'B306', ['tempfile.mktemp'],
         'Use of insecure and deprecated function (mktemp).'
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'eval', 'B307', ['eval'],
         'Use of possibly insecure function - consider using safer '
         'ast.literal_eval.'
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'mark_safe', 'B308', ['django.utils.safestring.mark_safe'],
         'Use of mark_safe() may expose cross-site scripting '
         'vulnerabilities and should be reviewed.'
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'httpsconnection', 'B309',
@@ -424,7 +420,7 @@ def gen_blacklist():
         'Use of HTTPSConnection on older versions of Python prior to 2.7.9 '
         'and 3.4.3 do not provide security, see '
         'https://wiki.openstack.org/wiki/OSSN/OSSN-0033'
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'urllib_urlopen', 'B310',
@@ -444,7 +440,7 @@ def gen_blacklist():
          'six.moves.urllib.request.FancyURLopener'],
         'Audit url open for permitted schemes. Allowing use of file:/ or '
         'custom schemes is often unexpected.'
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'random', 'B311',
@@ -452,19 +448,20 @@ def gen_blacklist():
          'random.randrange',
          'random.randint',
          'random.choice',
+         'random.choices',
          'random.uniform',
          'random.triangular'],
         'Standard pseudo-random generators are not suitable for '
         'security/cryptographic purposes.',
         'LOW'
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'telnetlib', 'B312', ['telnetlib.*'],
         'Telnet-related functions are being called. Telnet is considered '
         'insecure. Use SSH or some other encrypted protocol.',
         'HIGH'
-        ))
+    ))
 
     # Most of this is based off of Christian Heimes' work on defusedxml:
     #   https://pypi.org/project/defusedxml/#defusedxml-sax
@@ -481,7 +478,7 @@ def gen_blacklist():
          'xml.etree.cElementTree.fromstring',
          'xml.etree.cElementTree.XMLParser'],
         xml_msg
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'xml_bad_ElementTree', 'B314',
@@ -490,19 +487,19 @@ def gen_blacklist():
          'xml.etree.ElementTree.fromstring',
          'xml.etree.ElementTree.XMLParser'],
         xml_msg
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'xml_bad_expatreader', 'B315', ['xml.sax.expatreader.create_parser'],
         xml_msg
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'xml_bad_expatbuilder', 'B316',
         ['xml.dom.expatbuilder.parse',
          'xml.dom.expatbuilder.parseString'],
         xml_msg
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'xml_bad_sax', 'B317',
@@ -510,21 +507,21 @@ def gen_blacklist():
          'xml.sax.parseString',
          'xml.sax.make_parser'],
         xml_msg
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'xml_bad_minidom', 'B318',
         ['xml.dom.minidom.parse',
          'xml.dom.minidom.parseString'],
         xml_msg
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'xml_bad_pulldom', 'B319',
         ['xml.dom.pulldom.parse',
          'xml.dom.pulldom.parseString'],
         xml_msg
-        ))
+    ))
 
     sets.append(utils.build_conf_dict(
         'xml_bad_etree', 'B320',
@@ -537,7 +534,7 @@ def gen_blacklist():
         ('Using {name} to parse untrusted XML data is known to be '
          'vulnerable to XML attacks. Replace {name} with its '
          'defusedxml equivalent function.')
-        ))
+    ))
 
     # end of XML tests
 
@@ -546,16 +543,9 @@ def gen_blacklist():
         'FTP-related functions are being called. FTP is considered '
         'insecure. Use SSH/SFTP/SCP or some other encrypted protocol.',
         'HIGH'
-        ))
+    ))
 
-    sets.append(utils.build_conf_dict(
-        'input', 'B322', ['input'],
-        'The input method in Python 2 will read from standard input, '
-        'evaluate and run the resulting string as python source code. This '
-        'is similar, though in many ways worse, then using eval. On Python '
-        '2, use raw_input instead, input is safe in Python 3.',
-        'HIGH'
-        ))
+    # skipped B322 as the check for a call to input() has been removed
 
     sets.append(utils.build_conf_dict(
         'unverified_context', 'B323', ['ssl._create_unverified_context'],
@@ -564,7 +554,7 @@ def gen_blacklist():
         'using an insecure context via the _create_unverified_context that '
         'reverts to the previous behavior that does not validate certificates '
         'or perform hostname checks.'
-        ))
+    ))
 
     # skipped B324 (used in bandit/plugins/hashlib_new_insecure_functions.py)
 
@@ -572,6 +562,6 @@ def gen_blacklist():
         'tempnam', 'B325', ['os.tempnam', 'os.tmpnam'],
         'Use of os.tempnam() and os.tmpnam() is vulnerable to symlink '
         'attacks. Consider using tmpfile() instead.'
-        ))
+    ))
 
     return {'Call': sets}

@@ -1,22 +1,12 @@
 # Copyright (c) 2015 VMware, Inc.
 # Copyright (c) 2015 Hewlett Packard Enterprise
 #
-#  Licensed under the Apache License, Version 2.0 (the "License"); you may
-#  not use this file except in compliance with the License. You may obtain
-#  a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#  License for the specific language governing permissions and limitations
-#  under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import collections
 import tempfile
+from unittest import mock
 
-import mock
 import testtools
 
 import bandit
@@ -45,11 +35,12 @@ class ScreenFormatterTests(testtools.TestCase):
                           "{}   Severity: {}   Confidence: {}".
                           format(_indent_val, _issue.severity.capitalize(),
                                  _issue.confidence.capitalize()),
-                          "{}   Location: {}:{}{}".
+                          "{}   Location: {}:{}:{}".
                           format(_indent_val, _issue.fname, _issue.lineno,
-                                 screen.COLOR['DEFAULT']),
-                          "{}   More Info: {}".format(
-                              _indent_val, docs_utils.get_url(_issue.test_id))]
+                                 _issue.col_offset),
+                          "{}   More Info: {}{}".format(
+                              _indent_val, docs_utils.get_url(_issue.test_id),
+                              screen.COLOR['DEFAULT'])]
             if _code:
                 return_val.append("{}{}".format(_indent_val, _code))
             return '\n'.join(return_val)
@@ -66,6 +57,7 @@ class ScreenFormatterTests(testtools.TestCase):
         self.assertEqual(expected_return, issue_text)
 
         issue.lineno = ''
+        issue.col_offset = ''
         issue_text = screen._output_issue_str(issue, indent_val,
                                               show_lineno=False)
         expected_return = _template(issue, indent_val, 'DDDDDDD',
@@ -82,9 +74,9 @@ class ScreenFormatterTests(testtools.TestCase):
 
         get_issue_list.return_value = collections.OrderedDict()
         with mock.patch('bandit.formatters.screen.do_print') as m:
-            tmp_file = open(self.tmp_fname, 'w')
-            screen.report(self.manager, tmp_file, bandit.LOW, bandit.LOW,
-                          lines=5)
+            with open(self.tmp_fname, 'w') as tmp_file:
+                screen.report(self.manager, tmp_file, bandit.LOW, bandit.LOW,
+                              lines=5)
             self.assertIn('No issues identified.',
                           '\n'.join([str(a) for a in m.call_args]))
 
@@ -121,9 +113,9 @@ class ScreenFormatterTests(testtools.TestCase):
         with mock.patch(output_str_fn) as output_str:
             output_str.return_value = 'ISSUE_OUTPUT_TEXT'
 
-            tmp_file = open(self.tmp_fname, 'w')
-            screen.report(self.manager, tmp_file, bandit.LOW, bandit.LOW,
-                          lines=5)
+            with open(self.tmp_fname, 'w') as tmp_file:
+                screen.report(self.manager, tmp_file, bandit.LOW, bandit.LOW,
+                              lines=5)
 
             calls = [mock.call(issue_a, '', lines=5),
                      mock.call(issue_b, '', lines=5)]
@@ -133,9 +125,9 @@ class ScreenFormatterTests(testtools.TestCase):
         # Validate that we're outputting all of the expected fields and the
         # correct values
         with mock.patch('bandit.formatters.screen.do_print') as m:
-            tmp_file = open(self.tmp_fname, 'w')
-            screen.report(self.manager, tmp_file, bandit.LOW, bandit.LOW,
-                          lines=5)
+            with open(self.tmp_fname, 'w') as tmp_file:
+                screen.report(self.manager, tmp_file, bandit.LOW, bandit.LOW,
+                              lines=5)
 
             data = '\n'.join([str(a) for a in m.call_args[0][0]])
 
@@ -195,9 +187,9 @@ class ScreenFormatterTests(testtools.TestCase):
         with mock.patch(output_str_fn) as output_str:
             output_str.return_value = 'ISSUE_OUTPUT_TEXT'
 
-            tmp_file = open(self.tmp_fname, 'w')
-            screen.report(self.manager, tmp_file, bandit.LOW, bandit.LOW,
-                          lines=5)
+            with open(self.tmp_fname, 'w') as tmp_file:
+                screen.report(self.manager, tmp_file, bandit.LOW, bandit.LOW,
+                              lines=5)
 
             calls = [mock.call(issue_a, '', lines=5),
                      mock.call(issue_b, '', show_code=False,

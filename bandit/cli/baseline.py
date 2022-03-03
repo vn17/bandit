@@ -2,17 +2,7 @@
 #
 # Copyright 2015 Hewlett-Packard Enterprise
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 # #############################################################################
 # Bandit Baseline is a tool that runs Bandit against a Git commit, and compares
@@ -22,6 +12,9 @@
 # filters or profiles), checks out the current commit, runs Bandit, and then
 # reports on any new findings.
 # #############################################################################
+
+"""Bandit is a tool designed to find common security issues in Python code."""
+
 
 import argparse
 import contextlib
@@ -43,8 +36,11 @@ repo = None
 report_basename = 'bandit_baseline_result'
 valid_baseline_formats = ['txt', 'html', 'json']
 
+"""baseline.py"""
+
 
 def main():
+    """Execute Bandit."""
     # our cleanup function needs this and can't be passed arguments
     global current_commit
     global repo
@@ -130,6 +126,7 @@ def main():
 # #################### Clean up before exit ###################################
 @contextlib.contextmanager
 def baseline_setup():
+    """Baseline setup by creating temp folder and resetting repo."""
     d = tempfile.mkdtemp()
     yield d
     shutil.rmtree(d, True)
@@ -140,6 +137,7 @@ def baseline_setup():
 
 # #################### Setup logging ##########################################
 def init_logger():
+    """Init logger."""
     LOG.handlers = []
     log_level = logging.INFO
     log_format_string = "[%(levelname)7s ] %(message)s"
@@ -152,6 +150,7 @@ def init_logger():
 
 # #################### Perform initialization and validate assumptions ########
 def initialize():
+    """Initialize arguments and output formats."""
     valid = True
 
     # #################### Parse Args #########################################
@@ -170,7 +169,7 @@ def initialize():
                         default='terminal', help='specify output format',
                         choices=valid_baseline_formats)
 
-    args, unknown = parser.parse_known_args()
+    args, _ = parser.parse_known_args()
 
     # #################### Setup Output #######################################
     # set the output format, or use a default if not provided

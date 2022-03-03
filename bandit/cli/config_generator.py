@@ -1,16 +1,9 @@
 # Copyright 2015 Red Hat Inc.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# SPDX-License-Identifier: Apache-2.0
+"""Bandit is a tool designed to find common security issues in Python code."""
+
+
 from __future__ import print_function
 
 import argparse
@@ -59,6 +52,7 @@ template = """
 
 
 def init_logger():
+    """Init logger."""
     LOG.handlers = []
     log_level = logging.INFO
     log_format_string = "[%(levelname)5s]: %(message)s"
@@ -70,6 +64,7 @@ def init_logger():
 
 
 def parse_args():
+    """Parse arguments."""
     help_description = """Bandit Config Generator
 
     This tool is used to generate an optional profile.  The profile may be used
@@ -110,6 +105,7 @@ def parse_args():
 
 
 def get_config_settings():
+    """Get configuration settings."""
     config = {}
     for plugin in extension_loader.MANAGER.plugins:
         fn_name = plugin.name
@@ -127,6 +123,7 @@ def get_config_settings():
 
 
 def main():
+    """Config generator to write configuration file."""
     init_logger()
     args = parse_args()
 
